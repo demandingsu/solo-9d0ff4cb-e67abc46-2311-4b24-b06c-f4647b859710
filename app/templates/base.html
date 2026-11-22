@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}科研经费拨款核对{% endblock %}</title>
+  <style>
+    :root { --line:#d9dee7; --blue:#1f5fbf; --red:#c0392b; --amber:#b7791f; --green:#2f7d32; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: "Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif;
+           color:#1f2933; background:#f4f6fa; line-height:1.55; }
+    header { background:#163a66; color:#fff; padding:18px 28px; }
+    header h1 { margin:0; font-size:20px; }
+    header p { margin:6px 0 0; font-size:13px; color:#c8d6ea; }
+    main { max-width:1180px; margin:24px auto; padding:0 20px; }
+    .card { background:#fff; border:1px solid var(--line); border-radius:10px;
+            padding:20px 24px; margin-bottom:20px; }
+    .card h2 { margin:0 0 14px; font-size:17px; border-left:4px solid var(--blue);
+               padding-left:10px; }
+    table { border-collapse:collapse; width:100%; font-size:13.5px; }
+    th, td { border:1px solid var(--line); padding:7px 10px; text-align:left; }
+    th { background:#eef2f8; font-weight:600; white-space:nowrap; }
+    td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+    .tag { display:inline-block; padding:2px 9px; border-radius:11px; font-size:12px; white-space:nowrap; }
+    .tag-miss { background:#fdecea; color:var(--red); }
+    .tag-over { background:#fff4e0; color:var(--amber); }
+    .tag-ok   { background:#e8f5e9; color:var(--green); }
+    .muted { color:#6b7785; font-size:12.5px; }
+    .upload-row { display:grid; grid-template-columns:160px 1fr; gap:12px; align-items:center;
+                  margin-bottom:14px; }
+    input[type=file] { font-size:13px; }
+    button { background:var(--blue); color:#fff; border:0; border-radius:7px;
+             padding:10px 26px; font-size:15px; cursor:pointer; }
+    button:hover { background:#184a96; }
+    .alert { border:1px solid #f2c2bd; background:#fdecea; color:#8a2a20;
+             border-radius:10px; padding:16px 22px; }
+    .alert h2 { margin:0 0 10px; color:var(--red); border-left-color:var(--red); }
+    .alert li { margin-bottom:6px; font-size:14px; }
+    .path-box { border:1px dashed var(--line); border-radius:8px; padding:8px 12px;
+                margin:6px 0; background:#fafbfd; font-size:13px; }
+    .path-box b { color:var(--blue); }
+    .summary { display:flex; gap:16px; flex-wrap:wrap; }
+    .stat { flex:1 1 150px; background:#f7f9fc; border:1px solid var(--line);
+            border-radius:10px; padding:14px 16px; }
+    .stat .k { font-size:12.5px; color:#6b7785; }
+    .stat .v { font-size:20px; font-weight:700; margin-top:4px; }
+    a.back { color:var(--blue); text-decoration:none; }
+    code { background:#eef2f8; padding:1px 6px; border-radius:4px; font-size:12.5px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>科研经费拨款核对</h1>
+    <p>拨款表 × 归属表 × 归口表，按拨款日两层内连接，核算各统计单位实际合计并定位漏计 / 多计</p>
+  </header>
+  <main>
+    {% block body %}{% endblock %}
+  </main>
+</body>
+</html>

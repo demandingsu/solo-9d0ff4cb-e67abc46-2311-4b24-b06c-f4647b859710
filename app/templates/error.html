@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="alert">
+  <h2>输入有误，本次核对已整次退回</h2>
+  <p class="muted">未产生任何部分结果。请修正下列问题后重新上传三份文件：</p>
+  <ul>
+    {% for label, line, msg in errors %}
+    <li>
+      <b>{{ label }}</b>{% if line %} 第 {{ line }} 行{% endif %}：{{ msg }}
+    </li>
+    {% endfor %}
+  </ul>
+  <p><a class="back" href="/">← 返回重新上传</a></p>
+</div>
+{% endblock %}

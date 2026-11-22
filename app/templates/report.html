@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}核对结果 · 科研经费拨款核对{% endblock %}
+{% block body %}
+<div class="card">
+  <h2>核对概览</h2>
+  <div class="summary">
+    <div class="stat"><div class="k">拨款笔数</div><div class="v">{{ report.total_grants }}</div></div>
+    <div class="stat"><div class="k">正常（恰好 1 条路径）</div><div class="v" style="color:var(--green)">{{ report.normal_grants }}</div></div>
+    <div class="stat"><div class="k">漏计笔数</div><div class="v" style="color:var(--red)">{{ report.missed|length }}</div></div>
+    <div class="stat"><div class="k">多计笔数</div><div class="v" style="color:var(--amber)">{{ report.overcounted|length }}</div></div>
+    <div class="stat"><div class="k">实际入表总次数</div><div class="v">{{ report.unit_path_counts.values()|sum }}</div></div>
+    <div class="stat"><div class="k">实际总合计（元）</div><div class="v">{{ report.grand_total|fen }}</div></div>
+  </div>
+  <p class="muted" style="margin-top:12px">
+    文件：拨款表 <code>{{ file_names["拨款表"] }}</code> ·
+    归属表 <code>{{ file_names["归属表"] }}</code> ·
+    归口表 <code>{{ file_names["归口表"] }}</code>
+  </p>
+</div>
+
+<div class="card">
+  <h2>各统计单位实际合计</h2>
+  <table>
+    <thead>
+      <tr><th>统计单位</th><th class="num">实际入表次数</th><th class="num">实际合计（分）</th><th class="num">实际合计（元）</th></tr>
+    </thead>
+    <tbody>
+      {% for unit, total in report.unit_totals.items() %}
+      <tr>
+        <td>{{ unit }}</td>
+        <td class="num">{{ report.unit_path_counts[unit] }}</td>
+        <td class="num">{{ total }}</td>
+        <td class="num">{{ total|fen }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="muted">没有任何拨款完成两层连接，无统计单位入表。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="muted" style="margin-top:8px">
+    同一统计单位的不同匹配路径分别计入；次数与合计按路径数倍乘，未逐条枚举路径计算。
+  </p>
+</div>
+
+<div class="card">
+  <h2>漏计单号（共 {{ report.missed|length }} 笔）</h2>
+  <table>
+    <thead>
+      <tr><th>单号</th><th>项目号</th><th>拨款日</th><th class="num">金额（分）</th><th>断裂层</th><th>说明</th></tr>
+    </thead>
+    <tbody>
+      {% for m in report.missed %}
+      <tr>
+        <td><span class="tag tag-miss">漏计</span> {{ m.grant_no }}</td>
+        <td>{{ m.project }}</td>
+        <td>{{ m.grant_date }}</td>
+        <td class="num">{{ m.amount }}</td>
+        <td><b>{{ m.broken_layer }}</b></td>
+        <td class="muted">
+          {% if m.broken_layer == "归属层" %}
+            拨款日在归属表中找不到该项目号的有效归属行（第一层内连接无匹配）
+          {% else %}
+            已命中 {{ m.attribution_hits }} 条归属行，但这些学院在拨款日均无有效归口行（第二层内连接无匹配）
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="muted">无漏计。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>多计单号（共 {{ report.overcounted|length }} 笔）</h2>
+  {% for o in report.overcounted %}
+  <div style="margin-bottom:18px">
+    <p style="margin:0 0 6px">
+      <span class="tag tag-over">多计</span>
+      <b>{{ o.grant_no }}</b>
+      <span class="muted">项目 {{ o.project }} · 拨款日 {{ o.grant_date }} · 金额 {{ o.amount }} 分</span>
+      ｜实际入表次数：<b style="color:var(--amber)">{{ o.path_count }}</b>
+    </p>
+    <p class="muted" style="margin:4px 0">
+      按统计单位分布：
+      {% for unit, cnt in o.unit_counts.items() %}{{ unit }} × {{ cnt }} 条路径{% if not loop.last %}；{% endif %}{% endfor %}
+    </p>
+    <p class="muted" style="margin:4px 0">两条匹配路径示例（各标出归属、归口行号；路径总数见上方次数）：</p>
+    {% for p in o.sample_paths %}
+    <div class="path-box">
+      路径 {{ loop.index }}：
+      归属表 <b>行号 {{ p.attribution_line }}</b>（学院码 {{ p.college }}）
+      → 归口表 <b>行号 {{ p.jurisdiction_line }}</b>（统计单位 {{ p.unit }}）
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="muted">无多计。</p>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <h2>全部拨款的实际入表次数</h2>
+  <table>
+    <thead>
+      <tr><th>单号</th><th>项目号</th><th>拨款日</th><th class="num">金额（分）</th><th class="num">实际入表次数</th><th>状态</th></tr>
+    </thead>
+    <tbody>
+      {% for e in report.entries %}
+      <tr>
+        <td>{{ e.grant_no }}</td>
+        <td>{{ e.project }}</td>
+        <td>{{ e.grant_date }}</td>
+        <td class="num">{{ e.amount }}</td>
+        <td class="num">{{ e.path_count }}</td>
+        <td>
+          {% if e.status == "漏计" %}<span class="tag tag-miss">漏计</span>
+          {% elif e.status == "多计" %}<span class="tag tag-over">多计</span>
+          {% else %}<span class="tag tag-ok">正常</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<p><a class="back" href="/">← 返回重新上传</a></p>
+{% endblock %}

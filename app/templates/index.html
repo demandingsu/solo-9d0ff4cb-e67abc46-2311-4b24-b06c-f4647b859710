@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="card">
+  <h2>上传三份 CSV</h2>
+  <form method="post" action="/check" enctype="multipart/form-data">
+    <div class="upload-row">
+      <label for="grants">拨款表</label>
+      <input id="grants" name="grants" type="file" accept=".csv,text/csv" required>
+    </div>
+    <div class="upload-row">
+      <label for="attributions">归属表</label>
+      <input id="attributions" name="attributions" type="file" accept=".csv,text/csv" required>
+    </div>
+    <div class="upload-row">
+      <label for="jurisdictions">归口表</label>
+      <input id="jurisdictions" name="jurisdictions" type="file" accept=".csv,text/csv" required>
+    </div>
+    <button type="submit">开始核对</button>
+  </form>
+  <p class="muted" style="margin-top:16px">
+    编码 UTF-8，首行表头，列顺序固定。有效期为<b>含起日、不含止日</b>。
+  </p>
+</div>
+
+<div class="card">
+  <h2>列格式要求</h2>
+  <table>
+    <tr><th>文件</th><th>列（按顺序）</th></tr>
+    <tr><td>拨款表</td><td><code>单号, 项目号, 拨款日, 金额_分</code></td></tr>
+    <tr><td>归属表</td><td><code>行号, 项目号, 学院码, 起日, 止日</code></td></tr>
+    <tr><td>归口表</td><td><code>行号, 学院码, 统计单位, 起日, 止日</code></td></tr>
+  </table>
+  <p class="muted" style="margin-top:10px">
+    日期格式 <code>YYYY-MM-DD</code>；金额单位为分、非负整数；单号与各表行号各自唯一。
+    可下载样例：
+    <a href="/samples/grants.csv">拨款表样例</a> ·
+    <a href="/samples/attributions.csv">归属表样例</a> ·
+    <a href="/samples/jurisdictions.csv">归口表样例</a>
+  </p>
+</div>
+{% endblock %}
