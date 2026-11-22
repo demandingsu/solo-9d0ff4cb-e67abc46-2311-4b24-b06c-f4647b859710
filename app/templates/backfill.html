@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}补录核对 · {{ board.grant.grant_no }}{% endblock %}
+{% block body %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+    <div class="flash flash-{{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+<div class="card">
+  <h2>单号 {{ board.grant.grant_no }} · 补录核对</h2>
+  <div class="summary">
+    <div class="stat"><div class="k">项目号</div><div class="v">{{ board.grant.project }}</div></div>
+    <div class="stat"><div class="k">拨款日</div><div class="v">{{ board.grant.grant_date }}</div></div>
+    <div class="stat"><div class="k">金额（元）</div><div class="v">{{ board.grant.amount|fen }}</div></div>
+    <div class="stat"><div class="k">明细条数</div><div class="v">{{ board.details|length }}</div></div>
+    <div class="stat"><div class="k">有效路径数</div><div class="v">{{ board.path_total }}</div></div>
+  </div>
+  <p class="muted" style="margin-top:12px">
+    文件：拨款表 <code>{{ file_names["拨款表"] }}</code> ·
+    归属表 <code>{{ file_names["归属表"] }}</code> ·
+    归口表 <code>{{ file_names["归口表"] }}</code> ·
+    入仓明细 <code>{{ file_names["入仓明细"] }}</code>
+    ｜状态版本 <code>v{{ version }}</code>（提交以版本校验，绑定已变时旧页签提交会被拒绝）
+  </p>
+</div>
+
+{% if board.solvable and board.unique %}
+<div class="card" style="border-left:4px solid var(--green)">
+  <h2 style="border-left-color:var(--green)">整单已可唯一配齐</h2>
+  <p style="font-size:14px">按当前绑定，全部 {{ board.details|length }} 条明细只有<b>一种</b>完整配法，可以下载补齐来源行号的 CSV。</p>
+  <p><a class="btn" href="/backfill/{{ job_id }}/download">下载补齐来源行号的 CSV</a></p>
+</div>
+{% elif board.solvable %}
+<div class="card" style="border-left:4px solid var(--amber)">
+  <h2 style="border-left-color:var(--amber)">整单可配齐，但配法不唯一</h2>
+  <p style="font-size:14px">当前绑定下仍存在多种完整配法，暂不能下载。请继续确认下方<b>待核</b>明细，直至只剩一种完整配法。</p>
+</div>
+{% else %}
+<div class="card" style="border-left:4px solid var(--red)">
+  <h2 style="border-left-color:var(--red)">整单无法配齐</h2>
+  <ul style="margin:6px 0 0; font-size:14px">
+    {% for reason in board.reasons %}
+    <li>{{ reason }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>明细与候选路径</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>入仓行号</th><th>统计单位</th>
+        <th>已填归属行号</th><th>已填归口行号</th>
+        <th>状态</th><th>符合已有字段的路径（同一对归属/归口行只能分给一条明细）</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for db in board.details %}
+      {% set d = db.detail %}
+      <tr>
+        <td><b>{{ d.entry_no }}</b></td>
+        <td>{{ d.unit }}</td>
+        <td class="num">{{ d.attr_line if d.attr_line is not none else "—" }}</td>
+        <td class="num">{{ d.jur_line if d.jur_line is not none else "—" }}</td>
+        <td>
+          {% if db.status == statuses.confirmed %}<span class="tag tag-info">人工已确认</span>
+          {% elif db.status == statuses.unique %}<span class="tag tag-ok">可唯一推定</span>
+          {% elif db.status == statuses.pending %}<span class="tag tag-over">待核</span>
+          {% else %}<span class="tag tag-miss">无候选路径</span>{% endif %}
+        </td>
+        <td>
+          {% if db.status == statuses.confirmed %}
+            <div class="path-box">
+              归属表 <b>行号 {{ db.bound.attr_line }}</b>（学院码 {{ db.bound.college }}）
+              → 归口表 <b>行号 {{ db.bound.jur_line }}</b>（统计单位 {{ db.bound.unit }}）
+              <form method="post" action="/backfill/{{ job_id }}/revoke" class="inline-form">
+                <input type="hidden" name="version" value="{{ version }}">
+                <input type="hidden" name="entry_no" value="{{ d.entry_no }}">
+                <button type="submit" class="btn-small btn-revoke">撤销确认</button>
+              </form>
+            </div>
+          {% elif db.status == statuses.unique %}
+            <div class="path-box">
+              归属表 <b>行号 {{ db.bound.attr_line }}</b>（学院码 {{ db.bound.college }}）
+              → 归口表 <b>行号 {{ db.bound.jur_line }}</b>（统计单位 {{ db.bound.unit }}）
+              <span class="muted">唯一候选，无需确认</span>
+            </div>
+          {% elif db.status == statuses.pending %}
+            {% for p in db.candidates %}
+            <div class="path-box">
+              归属表 <b>行号 {{ p.attr_line }}</b>（学院码 {{ p.college }}）
+              → 归口表 <b>行号 {{ p.jur_line }}</b>（统计单位 {{ p.unit }}）
+              <form method="post" action="/backfill/{{ job_id }}/confirm" class="inline-form">
+                <input type="hidden" name="version" value="{{ version }}">
+                <input type="hidden" name="entry_no" value="{{ d.entry_no }}">
+                <input type="hidden" name="attr_line" value="{{ p.attr_line }}">
+                <input type="hidden" name="jur_line" value="{{ p.jur_line }}">
+                <button type="submit" class="btn-small">确认此路径</button>
+              </form>
+            </div>
+            {% endfor %}
+          {% else %}
+            <span class="muted">没有符合已有字段的有效路径{% if db.raw_count > 0 %}（{{ db.raw_count }} 条候选均被已确认绑定占用）{% endif %}，请调整确认或核对已填行号。</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="muted" style="margin-top:8px">
+    确认 / 撤销后其余明细随之重判；确认若导致整单无法配齐将被拒绝并保留原绑定。
+  </p>
+</div>
+
+<p><a class="back" href="/backfill">← 重新上传</a> ｜ <a class="back" href="/">返回核对入口</a></p>
+{% endblock %}

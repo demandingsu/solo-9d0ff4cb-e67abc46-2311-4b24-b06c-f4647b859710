@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}补录来源行号 · 科研经费拨款核对{% endblock %}
+{% block body %}
+<div class="card">
+  <h2>补录来源行号：上传四份 CSV</h2>
+  <form method="post" action="/backfill" enctype="multipart/form-data">
+    <div class="upload-row">
+      <label for="grants">拨款表</label>
+      <input id="grants" name="grants" type="file" accept=".csv,text/csv" required>
+    </div>
+    <div class="upload-row">
+      <label for="attributions">归属表</label>
+      <input id="attributions" name="attributions" type="file" accept=".csv,text/csv" required>
+    </div>
+    <div class="upload-row">
+      <label for="jurisdictions">归口表</label>
+      <input id="jurisdictions" name="jurisdictions" type="file" accept=".csv,text/csv" required>
+    </div>
+    <div class="upload-row">
+      <label for="details">入仓明细（同一单号）</label>
+      <input id="details" name="details" type="file" accept=".csv,text/csv" required>
+    </div>
+    <button type="submit">开始补录核对</button>
+  </form>
+  <p class="muted" style="margin-top:16px">
+    前三份与核对入口相同；入仓明细为<b>同一单号</b>的旧入仓记录，
+    按该单号拨款日取符合明细已有字段的有效路径。
+    每次最多核对 <b>{{ max_details }}</b> 条明细、<b>{{ max_paths }}</b> 条有效路径，超出将提示。
+  </p>
+</div>
+
+<div class="card">
+  <h2>入仓明细列格式</h2>
+  <table>
+    <tr><th>文件</th><th>列（按顺序）</th></tr>
+    <tr><td>入仓明细</td><td><code>入仓行号, 单号, 统计单位, 归属行号, 归口行号</code></td></tr>
+  </table>
+  <p class="muted" style="margin-top:10px">
+    入仓行号在文件内唯一；单号、统计单位必填；<b>归属行号、归口行号缺项留空</b>，
+    已填则作为约束参与取路径。可下载样例：
+    <a href="/samples/details.csv">入仓明细样例</a>（对应拨款表样例中的单号 G006）。
+  </p>
+</div>
+
+<div class="card">
+  <h2>补录规则</h2>
+  <table>
+    <tr><th style="width:200px">规则</th><th>说明</th></tr>
+    <tr><td>取路径</td><td>按单号的拨款日做两层内连接（与核对入口同一规则），
+      只保留符合明细已有字段（统计单位及已填行号）的路径。</td></tr>
+    <tr><td>一对一</td><td>同一对（归属行号，归口行号）只能分给一条明细。</td></tr>
+    <tr><td>状态</td><td>人工已确认 / 可唯一推定（仅剩 1 条候选）/ 待核（多条候选）。</td></tr>
+    <tr><td>确认与撤销</td><td>确认后其余明细随之重判；确认若导致整单无法配齐将被拒绝并保留原绑定；撤销随时可行。</td></tr>
+    <tr><td>下载</td><td>仅当当前绑定下存在<b>唯一</b>完整配法时，才可下载补齐来源行号的 CSV。</td></tr>
+  </table>
+  <p class="muted" style="margin-top:10px"><a class="back" href="/">← 返回核对入口</a></p>
+</div>
+{% endblock %}
